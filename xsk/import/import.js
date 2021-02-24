@@ -9,9 +9,7 @@
  * SPDX-FileCopyrightText: 2019-2020 SAP SE or an SAP affiliate company and XSK contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-var repositoryManager = require("platform/v4/repository");
-var streams = require("io/v4/streams");
-var cache = require("core/v4/context");
+
 var acorn = require("acornjs/acorn");
 
 exports.import = function (namespace, name) {
@@ -21,84 +19,63 @@ exports.import = function (namespace, name) {
 
     console.info("Importing: " + resourceName);
 
-    var resource = repositoryManager.getResource('/registry/public/' + resourceName);
-    var passed = cache.get(resourceName);
-    var allpassed = cache.get("xsk-imported");
-    if (!allpassed) {
-        allpassed = [];
-    } else {
-        allpassed = JSON.parse(allpassed);
-    }
-    if (passed !== undefined && passed !== null) {
-        //console.error("Cyclic dependency using: " + resourceName + " in " + JSON.stringify(allpassed));
-        console.info("Reused: " + resourceName);
-        var size = 0;
-        for (var propertyName in passed) {
-            console.log("Reused: " + resourceName + " > " + propertyName);
-            size++;
-        }
-        if (size === 1 && passed.exports) {
-            console.error("Cyclic dependency using: " + resourceName + " in " + JSON.stringify(allpassed));
-        }
-        return passed;
-    }
-
-    var resourceByteArray = resource.getContent();
-    var resourceInputStream = streams.createByteArrayInputStream(resourceByteArray);
-
-    var resourceContent = resourceInputStream.readText();
-    resourceInputStream.close();
-
-    var context = { 'exports': {} };
-
-    cache.set(resourceName, context);
-    allpassed.push(resourceName);
-    cache.set("xsk-imported", JSON.stringify(allpassed));
-
-    // dirty hack to avoid double wrapping of  imported library
-    var n = resourceContent.indexOf("(function(exports) {");
-    if (n >= 0) {
-        resourceContent = resourceContent.substring(0, n) + resourceContent.substring(n + 20, resourceContent.length);
-        n = resourceContent.lastIndexOf("}(this));");
-        if (n >= 0) {
-            resourceContent = resourceContent.substring(0, n) + resourceContent.substring(n + 9, resourceContent.length);
-        }
-    }
-    //---
-
-    var exports = getExports(resourceContent);
-    resourceContent += "\n\n";
-    exports.forEach(e => resourceContent += "exports." + e + " = " + e + ";\n");
-
-    with (context) {
-        eval(resourceContent);
-    }
-
-    for (var propertyName in context.exports) {
-        context[propertyName] = context.exports[propertyName];
-        console.log("Member: " + resourceName + " > " + propertyName)
-    }
-
-    var parent = null;
-    validPackages.forEach(function(segment) {
-        if (parent === null) {
-            if (!$[segment]) {
-                $[segment] = {};
-            }
-            parent = $[segment];
-        } else {
-            if (!parent[segment]) {
-                parent[segment] = {};
-            }
-            parent = parent[segment];
-        }
-    });
-    parent[name] = context;
+    var module = xskRequire(resourceName);
 
     console.info("Imported: " + resourceName);
 
-    return context;
+    return module;
 }
+
+var Require = (function(modulePath) {
+	var _loadedModules = {};
+	var _require = function(path) {
+		var moduleInfo, buffered, head = '(function(exports,module,require){ ', code = '', tail = '})', line = null;
+		moduleInfo = _loadedModules[path];
+		if (moduleInfo) {
+			return moduleInfo;
+		}
+		code = SourceProvider.loadSource(path);
+        
+        var exports = getExports(code);
+        code += "\n\n";
+        exports.forEach(e => code += "exports." + e + " = " + e + ";\n");
+
+		moduleInfo = {
+			loaded: false,
+			id: path,
+			exports: {},
+			require: _requireClosure()
+		};
+		code = head + code + tail;
+		_loadedModules[path] = moduleInfo;
+		var compiledWrapper = null;
+		try {
+			compiledWrapper = eval(code);
+		} catch (e) {
+			throw new Error('Error evaluating module ' + path + ' line #' + e.lineNumber + ' : ' + e.message, path, e.lineNumber);
+		}
+		var parameters = [moduleInfo.exports, /* exports */
+			moduleInfo, /* module */
+		moduleInfo.require /* require */
+		];
+		try {
+			compiledWrapper.apply(moduleInfo.exports, /* this */
+				parameters);
+		} catch (e) {
+			throw new Error('Error executing module ' + path + ' line #' + e.lineNumber + ' : ' + e.message, path, e.lineNumber);
+		}
+		moduleInfo.loaded = true;
+		return moduleInfo;
+	};
+	var _requireClosure = function() {
+		return function(path) {
+			var module = _require(path);
+			return module.exports;
+		};
+	}; return _requireClosure();
+});
+
+var xskRequire = Require();
 
 function getExports(code) {
     var nodes = acorn.parse(code);
