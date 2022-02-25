@@ -14,13 +14,8 @@
  */
 var database = require('db/v4/database');
 
-const aA = 5;
-const aa = 5;
-
 const PROCEDURE_IN_PARAMETER = 1;
 const PROCEDURE_IN_OUT_PARAMETER = 2;
-const PROCEDURE_OUT_PARAMETER = 3;
-const PROCEDURE_UNKNOWN_PARAMETER = 4;
 
 exports.getConnection = function () {
 	var dConnection = database.getConnection();
@@ -75,7 +70,8 @@ function XscConnection(dConnection) {
 		let procedureCallStatement
 		try {
 			conn = $.db.getConnection();
-			procedureCallStatement = `CALL "` + schema + `"."` + procedure + `"`;
+			procedureCallStatement = 'CALL $schema.$procedure';
+			procedureCallStatement = procedureCallStatement.replace('$schema',schema).replace('$procedure',procedure);
 			let procedureParametersStatement = `
 			DO BEGIN
 				DECLARE matcher string;
@@ -85,8 +81,8 @@ function XscConnection(dConnection) {
 				DECLARE parameter_names VARCHAR(100) ARRAY;
 				DECLARE parameter_types VARCHAR(10) ARRAY;
 
-				SELECT DEFINITION INTO definition FROM "SYS"."PROCEDURES" WHERE PROCEDURE_NAME = '` + procedure + `';
-
+               `+'SELECT DEFINITION INTO definition FROM "SYS"."PROCEDURES" WHERE PROCEDURE_NAME = $procedure;'.replace('$procedure',"'"+procedure+"'")+`		
+			
 				matcher := '(in|out|IN|OUT) \\w+';
 
 				occn := 1;
@@ -227,7 +223,7 @@ function XscConnection(dConnection) {
 
 function XscResultSet(dResultSet) {
 	this.length = 0;
-	this.metadata = new XscResultSetMetaData(dResultSet.native.getMetaData());
+	this.metadata = new XscResultSetMetaData(dResultSet.getMetaData());
 	syncResultSet.call(this);
 	this.getIterator = function () {
 		return new XscResultSetIterator(this);
@@ -285,7 +281,7 @@ function SQLException() {
 
 // UTIL FUNCTIONS
 function setStatementParams(dPreparedStatement, args) {
-	var parameterMetaData = dPreparedStatement.native.getParameterMetaData();
+	var parameterMetaData = dPreparedStatement.getParameterMetaData();
 	var paramsCount = parameterMetaData.getParameterCount();
 
 	if (paramsCount !== args.length) {
@@ -296,14 +292,14 @@ function setStatementParams(dPreparedStatement, args) {
 }
 
 function setProcedureParams(dPreparedStatement, args) {
-	var parameterMetaData = dPreparedStatement.native.getParameterMetaData();
+	var parameterMetaData = dPreparedStatement.getParameterMetaData();
 	var paramsCount = parameterMetaData.getParameterCount();
 	var inParamsCount = 0;
 
 	for (var i = 0, paramIndex = 1; i < paramsCount; i++, paramIndex++) {
 		var paramMode = parameterMetaData.getParameterMode(paramIndex);
 
-		if (paramMode === PROCEDURE_IN_PARAMETER || paramMode === PROCEDURE_OUT_PARAMETER) {
+		if (paramMode === PROCEDURE_IN_PARAMETER || paramMode === PROCEDURE_IN_OUT_PARAMETER) {
 			inParamsCount++;
 		}
 	}
