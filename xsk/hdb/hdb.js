@@ -281,7 +281,7 @@ function SQLException() {
 
 // UTIL FUNCTIONS
 function setStatementParams(dPreparedStatement, args) {
-	var parameterMetaData = dPreparedStatement.getParameterMetaData();
+	var parameterMetaData = dPreparedStatement.native.getParameterMetaData();
 	var paramsCount = parameterMetaData.getParameterCount();
 
 	if (paramsCount !== args.length) {
@@ -292,7 +292,7 @@ function setStatementParams(dPreparedStatement, args) {
 }
 
 function setProcedureParams(dPreparedStatement, args) {
-	var parameterMetaData = dPreparedStatement.getParameterMetaData();
+	var parameterMetaData = dPreparedStatement.native.getParameterMetaData();
 	var paramsCount = parameterMetaData.getParameterCount();
 	var inParamsCount = 0;
 
