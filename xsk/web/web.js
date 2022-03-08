@@ -10,7 +10,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 /*
- * HANA XS Classic Bridge for Request API
+ * HANA XS Classic Bridge for Web API
  */
 
 var dRequest = require('http/v4/request');
