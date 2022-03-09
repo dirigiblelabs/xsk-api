@@ -66,7 +66,6 @@ exports.GATEWAY_TIMEOUT = 504;
 exports.HTTP_VERSION_NOT_SUPPORTED = 505;
 
 var SET_COOKIE_HEADER = "Set-Cookie";
-var CONTENT_LENGTH_HEADER = "Content-Length";
 
 exports.readDestination = function (destinationPackage, destinationName) {
   var destination = com.sap.xsk.api.destination.CloudPlatformDestinationFacade.getDestination(destinationName);
