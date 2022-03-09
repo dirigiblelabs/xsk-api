@@ -109,7 +109,6 @@ exports.Client = function () {
 
   function sendRequestObjToDestination(requestObj, destination) {
     var requestHeaders = getHeadersArrFormTupel(requestObj.headers);
-    requestHeaders = removeContentLengthHeaderIfPost(requestHeaders, requestObj.method);
     addCookieToHeadersFromTupel(requestObj.cookies, requestHeaders);
 
     if (requestObj.contentType) {
@@ -135,7 +134,6 @@ exports.Client = function () {
 
     options.headers = [];
     var requestHeaders = getHeadersArrFormTupel(requestObj.headers);
-    requestHeaders = removeContentLengthHeaderIfPost(requestHeaders, requestObj.method);
     options.headers = requestHeaders;
     addCookieToHeadersFromTupel(requestObj.cookies, options.headers);
     addTimeoutToOptions(options);
@@ -281,13 +279,6 @@ exports.Client = function () {
     });
 
     return new web.TupelList(cookieObjArray);
-  }
-
-  function removeContentLengthHeaderIfPost(headers, method) {
-    if (method === exports.POST) {
-      headers = headers.filter(header => header.name.toUpperCase() !== CONTENT_LENGTH_HEADER.toUpperCase())
-    }
-    return headers;
   }
 };
 
