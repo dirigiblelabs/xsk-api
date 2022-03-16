@@ -66,6 +66,7 @@ exports.GATEWAY_TIMEOUT = 504;
 exports.HTTP_VERSION_NOT_SUPPORTED = 505;
 
 var SET_COOKIE_HEADER = "Set-Cookie";
+var CONTENT_LENGTH_HEADER = "Content-Length";
 
 exports.readDestination = function (destinationPackage, destinationName) {
   var destination = com.sap.xsk.api.destination.CloudPlatformDestinationFacade.getDestination(destinationName);
@@ -108,6 +109,7 @@ exports.Client = function () {
 
   function sendRequestObjToDestination(requestObj, destination) {
     var requestHeaders = getHeadersArrFormTupel(requestObj.headers);
+    requestHeaders = removeContentLengthHeaderIfPost(requestHeaders, requestObj.method);
     addCookieToHeadersFromTupel(requestObj.cookies, requestHeaders);
 
     if (requestObj.contentType) {
@@ -120,7 +122,17 @@ exports.Client = function () {
 
     requestObj.headers = requestHeaders;
 
-    clientResponse = com.sap.xsk.api.destination.CloudPlatformDestinationFacade.executeRequest(JSON.stringify(requestObj), destination);
+    let options = {};
+
+    if (requestObj.body) {
+        if (typeof requestObj.body === 'string' || requestObj.bodyy instanceof String) {
+          options.text = requestObj.body;
+        } else {
+          options.text = JSON.stringify(requestObj.body);
+        }
+    }
+
+    clientResponse = com.sap.xsk.api.destination.CloudPlatformDestinationFacade.executeRequest(JSON.stringify(requestObj), destination, JSON.stringify(options));
   }
 
   function sendRequestObjToUrl(requestObj, url, proxy) {
@@ -133,6 +145,7 @@ exports.Client = function () {
 
     options.headers = [];
     var requestHeaders = getHeadersArrFormTupel(requestObj.headers);
+    requestHeaders = removeContentLengthHeaderIfPost(requestHeaders, requestObj.method);
     options.headers = requestHeaders;
     addCookieToHeadersFromTupel(requestObj.cookies, options.headers);
     addTimeoutToOptions(options);
@@ -175,10 +188,11 @@ exports.Client = function () {
 
   function executeRequest(url, requestMethod, options, requestBody) {
     if (requestBody) {
-      if(typeof requestBody === 'string' || requestBody instanceof String)
+      if (typeof requestBody === 'string' || requestBody instanceof String) {
         options.text = requestBody;
-      else
+      } else {
         options.text = JSON.stringify(requestBody);
+      }
     }
 
     switch (requestMethod) {
@@ -278,6 +292,13 @@ exports.Client = function () {
     });
 
     return new web.TupelList(cookieObjArray);
+  }
+
+  function removeContentLengthHeaderIfPost(headers, method) {
+    if (method === exports.POST) {
+      headers = headers.filter(header => header.name.toUpperCase() !== CONTENT_LENGTH_HEADER.toUpperCase())
+    }
+    return headers;
   }
 };
 
