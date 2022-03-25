@@ -67,13 +67,25 @@ function XscConnection(dConnection) {
 			let procedureResult = new $.hdb.ProcedureResult;
 			let dConnection = null;
 			let procedureCallStatement = null;
+			let temporaryTables = [];
 			try {
 				dConnection = database.getConnection();
 				let procedureParameters = PROCEDURE_UTILS.getProcedureParameters(dConnection, procedure);
 				// Process the procedure arguments and set them to the in parameters
-				setProcedureParameterValues(procedureParameters, procedureCallArgs);
+				setProcedureParameterValues(dConnection, procedureParameters, procedureCallArgs);
 
-				procedureCallStatement = dConnection.prepareCall(`CALL "${schema}"."${procedure}" (` + procedureParameters.map(() => "?").toString() + `)`);
+				let sql = `CALL "${schema}"."${procedure}" (${procedureParameters.map(e => {
+					if (e.isTableType && PROCEDURE_UTILS.isProcedureInParamType(e.parameterType)) {
+						PROCEDURE_UTILS.createTemporaryTable(dConnection, e.temporaryTableName, e.temporaryTableType);
+						for (let i = 0; i < e.parameterValue.length; i++) {
+							PROCEDURE_UTILS.insertTemporaryTableData(dConnection, e.temporaryTableName, e.parameterValue[i]);
+						}
+						temporaryTables.push(e.temporaryTableName);
+						return e.temporaryTableName;
+					}
+					return "?";
+				}).join(",")})`;
+				procedureCallStatement = dConnection.prepareCall(sql);
 				PROCEDURE_UTILS.setProcedureParameters(procedureCallStatement, procedureParameters);
 				let hasResults = procedureCallStatement.execute();
 				let resultSets = [];
@@ -102,6 +114,15 @@ function XscConnection(dConnection) {
 			} catch (e) {
 				throw new Error(e);
 			} finally {
+				for (let i = 0; i < temporaryTables.length; i++) {
+					try {
+						PROCEDURE_UTILS.dropTemporaryTable(dConnection, temporaryTables[i]);
+					} catch (e) {
+						console.error(`Error occurred when droping temporary table ${e}`);
+					}
+
+				}
+
 				if (procedureCallStatement !== null && procedureCallStatement !== undefined) {
 					procedureCallStatement.close();
 				}
@@ -195,7 +216,7 @@ function setStatementParams(dPreparedStatement, args) {
 	}
 }
 
-function setProcedureParameterValues(procedureParameters, procedureCallArgs) {
+function setProcedureParameterValues(connection, procedureParameters, procedureCallArgs) {
 	if (procedureCallArgs.length === 1 && typeof procedureCallArgs[0] === 'object' && !Array.isArray(procedureCallArgs[0]) && procedureCallArgs[0] !== null) {
 		procedureCallArgs = procedureCallArgs[0];
 		for (let procedureCallArg in procedureCallArgs) {

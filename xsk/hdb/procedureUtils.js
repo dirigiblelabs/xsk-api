@@ -13,26 +13,40 @@ exports.isProcedureOutParamType = function (parameterType) {
     return parameterType === exports.PROCEDURE_IN_OUT_PARAMETER || parameterType === exports.PROCEDURE_OUT_PARAMETER;
 };
 
+exports.isProcedureParamDataTypeTable = function (parameterDataType) {
+    return parameterDataType === exports.SQL_TABLE_TYPE;
+};
+
 exports.getProcedureParameters = function (connection, procedureName) {
     let parameters = [];
     let resultSet = connection.native.getMetaData().getProcedureColumns(null, null, procedureName, "%");
+
     while (resultSet.next()) {
         parameters.push({
+            columnNames: columnNames,
             parameterName: resultSet.getString("COLUMN_NAME"),
             parameterType: resultSet.getShort("COLUMN_TYPE"),
             parameterTypeName: resultSet.getString("TYPE_NAME"),
+            parameterTypeSchema: resultSet.getString("PROCEDURE_SCHEM"),
             parameterDataType: resultSet.getInt("DATA_TYPE"),
-            parameterValue: null
+            parameterValue: null,
+            isTableType: exports.isProcedureParamDataTypeTable(resultSet.getInt("DATA_TYPE")),
+            temporaryTableName: "",
+            temporaryTableType: ""
         })
     }
+    parameters.filter(e => e.isTableType).forEach(e => {
+        e.temporaryTableName = `#TEMP_TABLE_${e.parameterTypeName}`;
+        e.temporaryTableType = `"${e.parameterTypeSchema}"."${e.parameterTypeName}"`;
+    });
     return parameters;
 };
 
-exports.setProcedureParameters = function (preparedCallableStatement, procedureParameters) {
-    for (var i = 0, paramIndex = 1; i < procedureParameters.length; i++, paramIndex++) {
-        let procedureParameter = procedureParameters[i];
-        if (exports.isProcedureInParamType(procedureParameter.parameterType)) {
-            HDB_UTILS.setParamByType(preparedCallableStatement, procedureParameter.parameterTypeName, procedureParameter.parameterValue, paramIndex);
+exports.setProcedureParameters = function (callableStatement, parameters) {
+    for (var i = 0, paramIndex = 1; i < parameters.length; i++) {
+        if (exports.isProcedureInParamType(parameters[i].parameterType) && !exports.isProcedureParamDataTypeTable(parameters[i].parameterDataType)) {
+            HDB_UTILS.setParamByType(callableStatement, parameters[i].parameterTypeName, parameters[i].parameterValue, paramIndex);
+            paramIndex++;
         }
     }
 };
@@ -104,9 +118,9 @@ exports.getProcedureOutParamValue = function (procedureCallStatement, procedureP
 };
 
 // -----------------------------------------------------------------------------------------------------------------
-// TODO: Related to #1464 [API] Procedure - Input parameter must be a table (https://github.com/SAP/xsk/issues/1464)
+// Related to #1464 [API] Procedure - Input parameter must be a table (https://github.com/SAP/xsk/issues/1464)
 // -----------------------------------------------------------------------------------------------------------------
-function dropTemporaryTable(connection, tableName) {
+exports.dropTemporaryTable = function (connection, tableName) {
     let sql = `DROP TABLE ${tableName}`;
     let ps = null;
     try {
@@ -117,9 +131,9 @@ function dropTemporaryTable(connection, tableName) {
             ps.close();
         }
     }
-}
+};
 
-function createTemporaryTable(connection, tableName, tableType) {
+exports.createTemporaryTable = function (connection, tableName, tableType) {
     let sql = `CREATE LOCAL TEMPORARY TABLE ${tableName} like ${tableType}`;
     let ps = null;
     try {
@@ -130,13 +144,14 @@ function createTemporaryTable(connection, tableName, tableType) {
             ps.close();
         }
     }
-}
+};
 
-function insertTemporaryTableData(connection, tableName, row) {
+exports.insertTemporaryTableData = function (connection, tableName, row) {
     let sql = `INSERT INTO ${tableName} (${Object.keys(row).join(",")}) VALUES (${Object.keys(row).map(() => "?").join(",")})`;
     let ps = null;
     try {
         ps = connection.prepareStatement(sql);
+        // TODO: Insert data types based on the table metadata!
         let objKeys = Object.keys(row);
         for (let i = 0; i < objKeys.length; i++) {
             let value = row[objKeys[i]]
@@ -153,18 +168,4 @@ function insertTemporaryTableData(connection, tableName, row) {
         }
     }
     return sql;
-}
-
-function getTemporaryTableData(connection, tableName) {
-    let sql = `SELECT * FROM ${tableName}`;
-    let ps = null;
-    try {
-        ps = connection.prepareStatement(sql);
-        let rs = ps.executeQuery();
-        return JSON.parse(rs.toJson());
-    } finally {
-        if (ps !== null && ps !== undefined) {
-            ps.close();
-        }
-    }
-}
+};
