@@ -23,7 +23,6 @@ exports.getProcedureParameters = function (connection, procedureName) {
 
     while (resultSet.next()) {
         parameters.push({
-            columnNames: columnNames,
             parameterName: resultSet.getString("COLUMN_NAME"),
             parameterType: resultSet.getShort("COLUMN_TYPE"),
             parameterTypeName: resultSet.getString("TYPE_NAME"),
