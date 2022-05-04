@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2021 SAP SE or an SAP affiliate company and XSK contributors
+ * Copyright (c) 2022 SAP SE or an SAP affiliate company and XSK contributors
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Apache License, v2.0
  * which accompanies this distribution, and is available at
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * SPDX-FileCopyrightText: 2021 SAP SE or an SAP affiliate company and XSK contributors
+ * SPDX-FileCopyrightText: 2022 SAP SE or an SAP affiliate company and XSK contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 var repositoryManager = require("platform/v4/repository");
@@ -43,20 +43,5 @@ exports.Store = function (filePath) {
 
     this.removeForUser = function(removeObject) {
         com.sap.xsk.xssecurestore.ds.facade.XSKSecureStoreFacade.removeForUser(filePath, removeObject.name);
-    }
-}
-exports.crypto = function (){
-    return new XSCrypto()
-
-}
-function XSCrypto(){
-    this.md5 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.md5(data,key);
-    }
-    this.sha1 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha1(data,key);
-    }
-    this.sha256 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha256(data,key);
     }
 }
