@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 SAP SE or an SAP affiliate company and XSK contributors
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Apache License, v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * SPDX-FileCopyrightText: 2022 SAP SE or an SAP affiliate company and XSK contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 exports.getResultSetValueByDataTypeAndRowNumber = function (resultSet, dataType, colNumber) {
     switch (dataType) {
         case "TINYINT":
@@ -14,8 +25,10 @@ exports.getResultSetValueByDataTypeAndRowNumber = function (resultSet, dataType,
         case "REAL":
         case "FLOAT":
             return resultSet.getFloat(colNumber);
+        case "DOUBLE PRECISION":
         case "DOUBLE":
             return resultSet.getDouble(colNumber);
+        case "CHARACTER VARYING":
         case "VARCHAR":
         case "ALPHANUM":
             return resultSet.getString(colNumber);
@@ -74,9 +87,11 @@ exports.setParamByType = function (preparedStatement, paramType, paramValue, par
         case "FLOAT":
             preparedStatement.setFloat(paramIndex, paramValue);
             break;
+        case "DOUBLE PRECISION":
         case "DOUBLE":
             preparedStatement.setDouble(paramIndex, paramValue);
             break;
+        case "CHARACTER VARYING":
         case "VARCHAR":
         case "ALPHANUM":
             preparedStatement.setString(paramIndex, paramValue);
