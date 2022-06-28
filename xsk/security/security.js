@@ -45,10 +45,12 @@ exports.Store = function (filePath) {
         com.sap.xsk.xssecurestore.ds.facade.XSKSecureStoreFacade.removeForUser(filePath, removeObject.name);
     }
 }
+
 exports.crypto = function (){
     return new XSCrypto()
 
 }
+
 function XSCrypto(){
     this.md5 = function (data,key){
         return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.md5(data,key);
@@ -57,6 +59,18 @@ function XSCrypto(){
         return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha1(data,key);
     }
     this.sha256 = function (data,key){
+        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha256(data,key);
+    }
+}
+
+class XSCrypto{
+    md5 = function (data,key){
+        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.md5(data,key);
+    }
+    sha1 = function (data,key){
+        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha1(data,key);
+    }
+    sha256 = function (data,key){
         return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha256(data,key);
     }
 }

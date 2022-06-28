@@ -241,6 +241,7 @@ function XscConnection(dConnection) {
 		return dConnection.getAutoCommit();
 	};
 }
+exports.XscConnection = XscConnection;
 
 // ParameterMetaData should be provided in Dirigible API
 function XscParameterMetaData(dParameterMetaData) {
