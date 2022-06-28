@@ -51,26 +51,16 @@ exports.crypto = function (){
 
 }
 
-function XSCrypto(){
-    this.md5 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.md5(data,key);
-    }
-    this.sha1 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha1(data,key);
-    }
-    this.sha256 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha256(data,key);
-    }
-}
+class XSCrypto {
+    CryptoFacade = Java.type("com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade");
 
-class XSCrypto{
-    md5 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.md5(data,key);
+    md5(data,key){
+        return this.CryptoFacade.md5(data,key);
     }
-    sha1 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha1(data,key);
+    sha1(data,key){
+        return this.CryptoFacade.sha1(data,key);
     }
-    sha256 = function (data,key){
-        return com.sap.xsk.xssecurestore.ds.facade.XSKSecureCryptoFacade.sha256(data,key);
+    sha256(data,key){
+        return this.CryptoFacade.sha256(data,key);
     }
 }
