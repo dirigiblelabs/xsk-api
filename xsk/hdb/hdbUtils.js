@@ -52,8 +52,8 @@ exports.getResultSetValueByDataTypeAndRowNumber = function (resultSet, dataType,
         case "VARBINARY":
         case "ST_GEOMETRY":
         case "ST_POINT":
-            return new Uint8Array(resultSet.getBytes(colNumber)).buffer;
         case "TEXT":
+            return new Uint8Array(resultSet.getBytes(colNumber)).buffer;
         case "CLOB":
             return resultSet.getClob(colNumber);
         case "ARRAY":
